@@ -42,7 +42,9 @@ class SIM_API cYAWNS : public cParsimProtocolBase
   protected:
     struct PartitionInfo
     {
+        // EIT = Earliest Input Time
         cMessage *eitEvent;  // EIT received from partition
+        // EOT = Earliest Output Time
         cMessage *eotEvent;  // events which marks that a null message should be sent out
         simtime_t lastEotSent; // last EOT value that was sent
     };
