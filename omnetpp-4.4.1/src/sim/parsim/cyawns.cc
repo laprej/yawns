@@ -41,10 +41,8 @@ NAMESPACE_BEGIN
 
 Register_Class(cYAWNS);
 
-Register_GlobalConfigOption(CFGID_PARSIM_YAWNS_LOOKAHEAD_CLASS, "parsim-yawns-lookahead-class", CFG_STRING, "cLinkDelayLookahead", "When cNullMessageProtocol is selected as parsim synchronization class: specifies the C++ class that calculates lookahead. The class should subclass from cNMPLookahead.");
-Register_GlobalConfigOption(CFGID_PARSIM_YAWNS_LAZINESS, "parsim-yawns-laziness", CFG_DOUBLE, "0.5", "When cNullMessageProtocol is selected as parsim synchronization class: specifies the laziness of sending null messages. Values in the range [0,1) are accepted. Laziness=0 causes null messages to be sent out immediately as a new EOT is learned, which may result in excessive null message traffic.");
+Register_GlobalConfigOption(CFGID_PARSIM_YAWNS_LOOKAHEAD_CLASS, "parsim-yawns-lookahead-class", CFG_STRING, "cLinkDelayLookahead", "When cYAWNS is selected as parsim synchronization class: specifies the C++ class that calculates lookahead. The class should subclass from cNMPLookahead.");
 extern cConfigOption *CFGID_PARSIM_DEBUG; // registered in cparsimpartition.cc
-
 
 cYAWNS::cYAWNS() : cParsimProtocolBase()
 {

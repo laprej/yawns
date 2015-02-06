@@ -53,16 +53,6 @@ class SIM_API cYAWNS : public cParsimProtocolBase
     int numSeg;              // number of partitions
     PartitionInfo *segInfo;  // partition info array, size numSeg
 
-    // controls null message resend frequency, 0<=laziness<=1
-    double laziness;
-
-    // internally used message kinds
-    enum
-    {
-        MK_PARSIM_EIT =       MK_PARSIM_BEGIN - 1,
-        MK_PARSIM_RESENDEOT = MK_PARSIM_BEGIN - 2
-    };
-
     bool debug;
 
     cNMPLookahead *lookaheadcalc;
@@ -96,20 +86,6 @@ class SIM_API cYAWNS : public cParsimProtocolBase
      * (cNMPLookahead) too.
      */
     virtual void setContext(cSimulation *sim, cParsimPartition *seg, cParsimCommunications *co);
-
-    /**
-     * Sets null message resend laziness. Value is between 0 and 1 --
-     * 0.0 means eager resend, 1.0 means lazy resend.
-     *
-     * (Probably should never be 1.0, otherwise floating point rounding errors
-     * may cause obscure EIT-deadlocks on receiving side.)
-     */
-    void setLaziness(double d)  {laziness = d;}
-
-    /**
-     * Get laziness of null message resend.
-     */
-    double getLaziness()  {return laziness;}
 
     /**
      * Called at the beginning of a simulation run.
