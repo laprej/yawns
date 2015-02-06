@@ -12,5 +12,5 @@ tandems into compound modules.
 A fixed number of jobs are created at the beginning of the simulation --
 jobs are not created or deleted during simulation.
 
-
-
+To run w/ MPI:
+mpirun -np 3 ./cqn -u Cmdenv -c CQN-B
