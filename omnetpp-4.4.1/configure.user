@@ -32,7 +32,7 @@
 # NOTE: that not all 64 bit libraries may be present on your system (i.e. Tcl/Tk and other
 # libraries may be missing. Use the NO_TCL=yes if you want to skip the Tcl/Tk based parts)
 #
-#LDFLAGS=""
+LDFLAGS="-L/opt/local/lib/mpich-mp"
 
 #
 # It is possible to have the Tcl files embedded into the compiled OMNeT++
@@ -142,9 +142,10 @@ SHARED_LIBS=yes
 #
 # If commented out, the configure script will try to autodetect it
 #
-#MPI_CFLAGS="-I /usr/include"
+MPI_CFLAGS="-I/opt/local/include/mpich-mp"
 #MPI_LIBS="-pthread -llammpio -llammpi++ -llamf77mpi -lmpi -llam -laio -laio -lutil"
 #MPI_LIBS="-lmpi++ -lmpi"   #SGI
+MPI_LIBS="-lmpicxx -lmpi -lpmpi"
 
 #
 # Compiler and linker options for Expat (optional component)
