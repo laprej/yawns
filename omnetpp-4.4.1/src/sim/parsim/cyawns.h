@@ -61,12 +61,6 @@ class SIM_API cYAWNS : public cParsimProtocolBase
     // process buffers coming from other partitions
     virtual void processReceivedBuffer(cCommBuffer *buffer, int tag, int sourceProcId);
 
-    // processes a received EIT: reschedule partition's EIT message
-    virtual void processReceivedEIT(int sourceProcId, simtime_t eit);
-
-    // resend null message to this partition
-    virtual void sendNullMessage(int procId, simtime_t now);
-
     // reschedule event in FES, to the given time
     virtual void rescheduleEvent(cMessage *msg, simtime_t t);
 

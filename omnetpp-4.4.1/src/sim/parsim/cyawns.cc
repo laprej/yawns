@@ -54,7 +54,6 @@ cYAWNS::cYAWNS() : cParsimProtocolBase()
     lookaheadcalc = dynamic_cast<cNMPLookahead *>(createOne(lookhClass.c_str()));
     if (!lookaheadcalc) \
          throw cRuntimeError("Class \"%s\" is not subclassed from cNMPLookahead", lookhClass.c_str());
-    laziness = ev.getConfig()->getAsDouble(CFGID_PARSIM_YAWNS_LAZINESS);
 }
 
 cYAWNS::~cYAWNS()
@@ -103,7 +102,7 @@ void cYAWNS::startRun()
         if (i!=myProcId)
         {
             sprintf(buf,"resendEOT-%d", i);
-            cMessage *eotMsg =  new cMessage(buf,MK_PARSIM_RESENDEOT);
+            cMessage *eotMsg =  new cMessage(buf);
             eotMsg->setContextPointer((void *)(long)i);  // khmm...
             segInfo[i].eotEvent = eotMsg;
             rescheduleEvent(eotMsg, 0.0);
@@ -117,7 +116,7 @@ void cYAWNS::startRun()
         if (i!=myProcId)
         {
             sprintf(buf,"EIT-%d", i);
-            cMessage *eitMsg =  new cMessage(buf,MK_PARSIM_EIT);
+            cMessage *eitMsg =  new cMessage(buf);
             segInfo[i].eitEvent = eitMsg;
             rescheduleEvent(eitMsg, 0.0);
         }
@@ -136,6 +135,8 @@ void cYAWNS::endRun()
 
 void cYAWNS::processOutgoingMessage(cMessage *msg, int destProcId, int destModuleId, int destGateId, void *data)
 {
+  cCommBuffer *buffer = comm->createCommBuffer();
+
   // send cMessage
   buffer->pack(destModuleId);
   buffer->pack(destGateId);
@@ -185,19 +186,6 @@ void cYAWNS::processReceivedBuffer(cCommBuffer *buffer, int tag, int sourceProcI
     buffer->assertBufferEmpty();
 }
 
-// void cYAWNS::processReceivedEIT(int sourceProcId, simtime_t eit)
-// {
-//     cMessage *eitMsg = segInfo[sourceProcId].eitEvent;
-
-//     {if (debug) ev.printf("null msg received from %d, EIT=%s, rescheduling EIT event\n", sourceProcId, SIMTIME_STR(eit));}
-
-//     // sanity check
-//     ASSERT(eit > eitMsg->getArrivalTime());
-
-//     // reschedule it to the EIT just received
-//     rescheduleEvent(eitMsg, eit);
-// }
-
 cMessage *cYAWNS::getNextEvent()
 {
     // our EIT and resendEOT messages are always scheduled, so the FES can
@@ -216,55 +204,11 @@ cMessage *cYAWNS::getNextEvent()
     cMessage *msg;
     while (true)
     {
-        msg = sim->msgQueue.peekFirst();
-        if (msg->getKind() == MK_PARSIM_RESENDEOT)
-        {
-            // send null messages if window closed for a partition
-            int procId = (long) msg->getContextPointer();  // khmm...
-            sendNullMessage(procId, msg->getArrivalTime());
-        }
-        else if (msg->getKind() == MK_PARSIM_EIT)
-        {
-            // wait until it gets out of the way (i.e. we get a higher EIT)
-            {if (debug) ev.printf("blocking on EIT event `%s'\n", msg->getName());}
-            if (!receiveBlocking())
-                return NULL;
-        }
-        else
-        {
-            // just a normal event -- go ahead with it
-            break;
-        }
+      msg = sim->msgQueue.peekFirst();
+      // Do something here
     }
     return msg;
 }
-
-// void cYAWNS::sendNullMessage(int procId, simtime_t now)
-// {
-//     // calculate EOT and sending of next null message
-//     simtime_t lookahead = lookaheadcalc->getCurrentLookahead(procId);
-//     simtime_t eot = now + lookahead;
-
-//     // ensure that even with eager resend, we only send out EOTs that
-//     // differ from previous one!
-//     if (eot == segInfo[procId].lastEotSent)
-//         return;
-//     if (eot < segInfo[procId].lastEotSent)
-//         throw cRuntimeError("cYAWNS error: attempt to decrease EOT");
-//     segInfo[procId].lastEotSent = eot;
-
-//     // calculate time of next null message sending, and schedule "resend-EOT" event
-//     simtime_t eotResendTime = now + lookahead*laziness;
-//     rescheduleEvent(segInfo[procId].eotEvent, eotResendTime);
-
-//     {if (debug) ev.printf("sending null msg to %d, lookahead=%s, EOT=%s; next resend at %s\n",procId,SIMTIME_STR(lookahead),SIMTIME_STR(eot),SIMTIME_STR(eotResendTime));}
-
-//     // send out null message
-//     cCommBuffer *buffer = comm->createCommBuffer();
-//     buffer->pack(eot);
-//     comm->send(buffer, TAG_NULLMESSAGE, procId);
-//     comm->recycleCommBuffer(buffer);
-// }
 
 void cYAWNS::rescheduleEvent(cMessage *msg, simtime_t t)
 {
