@@ -222,7 +222,8 @@ tw_gvt_step2(void)
 
     while(1)
     {
-        tw_net_read(me);
+        // Should be unnecessary due to OMNeT default behavior
+        // tw_net_read(me);
 
         // send message counts to create consistent cut
         local_white = me->s_nwhite_sent - me->s_nwhite_recv;
