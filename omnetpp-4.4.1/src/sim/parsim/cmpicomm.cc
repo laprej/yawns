@@ -44,7 +44,6 @@ Register_GlobalConfigOption(CFGID_PARSIM_MPICOMMUNICATIONS_MPIBUFFER, "parsim-mp
 cMPICommunications::cMPICommunications()
 {
     recycledBuffer = NULL;
-    s_nwhite_sent = s_nwhite_recv = 0;
 }
 
 cMPICommunications::~cMPICommunications()
@@ -139,7 +138,6 @@ void cMPICommunications::send(cCommBuffer *buffer, int tag, int destination)
     int status = MPI_Bsend(b->getBuffer(), b->getMessageSize(), MPI_PACKED, destination, tag, MPI_COMM_WORLD);
     if (status!=MPI_SUCCESS)
         throw cRuntimeError("cMPICommunications::send(): MPI error %d", status);
-    s_nwhite_sent++;
 }
 
 void cMPICommunications::broadcast(cCommBuffer *buffer, int tag)
@@ -165,7 +163,6 @@ bool cMPICommunications::receiveBlocking(int filtTag, cCommBuffer *buffer, int& 
     b->setMessageSize(msgsize);
     receivedTag = status.MPI_TAG;
     sourceProcId = status.MPI_SOURCE;
-    s_nwhite_recv++;
     return true;
 }
 
@@ -191,7 +188,6 @@ bool cMPICommunications::receiveNonblocking(int filtTag, cCommBuffer *buffer, in
         b->setMessageSize(msgsize);
         receivedTag = status.MPI_TAG;
         sourceProcId = status.MPI_SOURCE;
-        s_nwhite_recv++;
         return true;
     }
     return false;
