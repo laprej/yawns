@@ -54,6 +54,8 @@ cMPICommunications::~cMPICommunications()
 
 void cMPICommunications::init()
 {
+    s_nwhite_sent = s_nwhite_recv = 0;
+
     // sanity check
     int argc = ev.getArgCount();
     char **argv = ev.getArgVector();

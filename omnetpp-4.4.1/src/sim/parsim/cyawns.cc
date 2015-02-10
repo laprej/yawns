@@ -36,6 +36,7 @@
 #include "cplaceholdermod.h"
 #include "cproxygate.h"
 #include "cchannel.h"
+#include "mpi.h"
 
 NAMESPACE_BEGIN
 
@@ -190,11 +191,12 @@ enum gvt_status { TW_GVT_NORMAL, TW_GVT_COMPUTE };
 
 static gvt_status local_gvt_status = TW_GVT_NORMAL;
 
-static unsigned gvt_cnt = 0;
+static unsigned long gvt_cnt = 0;
+static unsigned long all_reduce_cnt = 0;
 static unsigned g_tw_gvt_interval = 16;
 
 void
-tw_gvt_step1(void)
+cYAWNS::tw_gvt_step1(void)
 {
     if(local_gvt_status == TW_GVT_COMPUTE ||
        ++gvt_cnt < g_tw_gvt_interval)
@@ -204,7 +206,7 @@ tw_gvt_step1(void)
 }
 
 void
-tw_gvt_step2(void)
+cYAWNS::tw_gvt_step2(void)
 {
     long long local_white = 0;
     long long total_white = 0;
@@ -226,7 +228,7 @@ tw_gvt_step2(void)
         // tw_net_read(me);
 
         // send message counts to create consistent cut
-        local_white = me->s_nwhite_sent - me->s_nwhite_recv;
+        local_white = comm->getNumSent() - comm->getNumRecv();
         all_reduce_cnt++;
         if(MPI_Allreduce(
                          &local_white,
@@ -234,8 +236,10 @@ tw_gvt_step2(void)
                          1,
                          MPI_LONG_LONG,
                          MPI_SUM,
-                         MPI_COMM_WORLD) != MPI_SUCCESS)
-            tw_error(TW_LOC, "MPI_Allreduce for GVT failed");
+                         MPI_COMM_WORLD) != MPI_SUCCESS) {
+            printf("MPI_Allreduce for GVT failed");
+            exit(-1);
+        }
 
         if(total_white == 0)
             break;
@@ -257,8 +261,10 @@ tw_gvt_step2(void)
                      1,
                      MPI_DOUBLE,
                      MPI_MIN,
-                     MPI_COMM_WORLD) != MPI_SUCCESS)
-        tw_error(TW_LOC, "MPI_Allreduce for GVT failed");
+                     MPI_COMM_WORLD) != MPI_SUCCESS) {
+        printf("MPI_Allreduce for GVT failed");
+        exit(-1);
+    }
 
     gvt = ROSS_MIN(gvt, me->GVT_prev);
 

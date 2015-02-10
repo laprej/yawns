@@ -64,6 +64,9 @@ class SIM_API cYAWNS : public cParsimProtocolBase
     // reschedule event in FES, to the given time
     virtual void rescheduleEvent(cMessage *msg, simtime_t t);
 
+    void tw_gvt_step1(void);
+    void tw_gvt_step2(void);
+
   public:
     /**
      * Constructor.

@@ -44,11 +44,17 @@ class cCommBuffer;
  */
 class SIM_API cParsimCommunications : public cObject
 {
+protected:
+    unsigned long s_nwhite_sent, s_nwhite_recv;
+
   public:
     /**
      * Virtual destructor.
      */
     virtual ~cParsimCommunications() {}
+
+    virtual unsigned long getNumSent() const { return s_nwhite_sent; }
+    virtual unsigned long getNumRecv() const { return s_nwhite_recv; }
 
     /** @name Lifecycle of communications library */
     //@{
