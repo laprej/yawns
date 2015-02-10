@@ -40,6 +40,7 @@ class SIM_API cMPICommunications : public cParsimCommunications
     cMPICommBuffer *recycledBuffer;
     int numPartitions;
     int myRank;
+    unsigned long s_nwhite_sent, s_nwhite_recv;
 
   protected:
     /**
@@ -48,6 +49,9 @@ class SIM_API cMPICommunications : public cParsimCommunications
     virtual cMPICommBuffer *doCreateCommBuffer();
 
   public:
+    virtual unsigned long getNumSent() const { return s_nwhite_sent; }
+    virtual unsigned long getNumRecv() const { return s_nwhite_recv; }
+
     /**
      * Constructor.
      */
