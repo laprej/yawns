@@ -245,7 +245,7 @@ cYAWNS::tw_gvt_step2(void)
             break;
     }
 
-    pq_min = tw_pq_minimum(me->pq);
+    pq_min = sim->getSimTime();
     net_min = tw_net_minimum(me);
 
     lvt = me->trans_msg_ts;
