@@ -246,75 +246,47 @@ cYAWNS::tw_gvt_step2(void)
     }
 
     pq_min = sim->getSimTime();
-    net_min = tw_net_minimum(me);
 
-    lvt = me->trans_msg_ts;
-    if(lvt > pq_min)
-        lvt = pq_min;
-    if(lvt > net_min)
-        lvt = net_min;
+// Skip all of this, OMNeT doesn't work this way (sends are sent
+// immediately and not stored in an outbound queue)
+//    net_min = tw_net_minimum(me);
+//
+//    lvt = me->trans_msg_ts;
+//    if(lvt > pq_min)
+//        lvt = pq_min;
+//    if(lvt > net_min)
+//        lvt = net_min;
+    lvt = pq_min;
 
     all_reduce_cnt++;
+
+    int64_t lvt_raw = lvt.raw();
+    int64_t gvt_raw = gvt.raw();
+
     if(MPI_Allreduce(
-                     &lvt,
-                     &gvt,
+                     &lvt_raw,
+                     &gvt_raw,
                      1,
-                     MPI_DOUBLE,
+                     MPI_LONG_LONG, // SimTime is internally an int64
                      MPI_MIN,
                      MPI_COMM_WORLD) != MPI_SUCCESS) {
         printf("MPI_Allreduce for GVT failed");
         exit(-1);
     }
 
-    gvt = ROSS_MIN(gvt, me->GVT_prev);
+    gvt.setRaw(gvt_raw);
 
-    if(gvt != me->GVT_prev)
-    {
-        g_tw_gvt_no_change = 0;
-    } else
-    {
-        g_tw_gvt_no_change++;
-        if (g_tw_gvt_no_change >= g_tw_gvt_max_no_change) {
-            tw_error(
-                     TW_LOC,
-                     "GVT computed %d times in a row"
-                     " without changing: GVT = %14.14lf, PREV %14.14lf"
-                     " -- GLOBAL SYNCH -- out of memory!",
-                     g_tw_gvt_no_change, gvt, me->GVT_prev);
-        }
-    }
+//    if (gvt / g_tw_ts_end > percent_complete && (g_tw_mynode == g_tw_masternode)) {
+//        gvt_print(gvt);
+//    }
 
-    if (me->GVT > gvt)
-    {
-        tw_error(TW_LOC, "PE %u GVT decreased %g -> %g",
-                 me->id, me->GVT, gvt);
-    }
-
-    if (gvt / g_tw_ts_end > percent_complete && (g_tw_mynode == g_tw_masternode)) {
-        gvt_print(gvt);
-    }
-
-    me->s_nwhite_sent = 0;
-    me->s_nwhite_recv = 0;
-    me->trans_msg_ts = DBL_MAX;
-    me->GVT_prev = DBL_MAX; // me->GVT;
-    me->GVT = gvt;
-    me->gvt_status = TW_GVT_NORMAL;
+    comm->setNumSent(0);
+    comm->setNumRecv(0);
+    local_gvt_status = TW_GVT_NORMAL;
 
     gvt_cnt = 0;
 
-    // update GVT timing stats
-    me->stats.s_gvt += tw_clock_read() - start;
-
-    // only FC if OPTIMISTIC
-    if( g_tw_synchronization_protocol == OPTIMISTIC )
-    {
-        start = tw_clock_read();
-        tw_pe_fossil_collect(me);
-        me->stats.s_fossil_collect += tw_clock_read() - start;
-    }
-
-    g_tw_gvt_done++;
+//    g_tw_gvt_done++;
 }
 
 cMessage *cYAWNS::getNextEvent()

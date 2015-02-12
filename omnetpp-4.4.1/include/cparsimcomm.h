@@ -53,6 +53,8 @@ protected:
      */
     virtual ~cParsimCommunications() {}
 
+    virtual void setNumSent(unsigned long s) { s_nwhite_sent = s; }
+    virtual void setNumRecv(unsigned long r) { s_nwhite_recv = r; }
     virtual unsigned long getNumSent() const { return s_nwhite_sent; }
     virtual unsigned long getNumRecv() const { return s_nwhite_recv; }
 
