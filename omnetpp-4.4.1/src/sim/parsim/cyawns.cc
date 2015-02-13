@@ -307,8 +307,7 @@ cMessage *cYAWNS::getNextEvent()
     cMessage *msg;
     while (true)
     {
-      msg = sim->msgQueue.peekFirst();
-      // Do something here
+        msg = sim->msgQueue.peekFirst();
     }
     return msg;
 }
