@@ -55,6 +55,8 @@ cYAWNS::cYAWNS() : cParsimProtocolBase()
     lookaheadcalc = dynamic_cast<cNMPLookahead *>(createOne(lookhClass.c_str()));
     if (!lookaheadcalc) \
          throw cRuntimeError("Class \"%s\" is not subclassed from cNMPLookahead", lookhClass.c_str());
+    tw_gvt_step1();
+    tw_gvt_step2();
 }
 
 cYAWNS::~cYAWNS()
@@ -245,8 +247,6 @@ cYAWNS::tw_gvt_step2(void)
             break;
     }
 
-    pq_min = sim->getSimTime();
-
 // Skip all of this, OMNeT doesn't work this way (sends are sent
 // immediately and not stored in an outbound queue)
 //    net_min = tw_net_minimum(me);
@@ -286,11 +286,16 @@ cYAWNS::tw_gvt_step2(void)
 
     gvt_cnt = 0;
 
+    // Set the GVT for this instance
+    GVT = gvt;
+
 //    g_tw_gvt_done++;
 }
 
 cMessage *cYAWNS::getNextEvent()
 {
+    simtime_t lookahead = lookaheadcalc->getCurrentLookahead(comm->getProcId());
+    lookahead += GVT;
     // our EIT and resendEOT messages are always scheduled, so the FES can
     // only be empty if there are no other partitions at all -- "no events" then
     // means we're finished.
@@ -308,7 +313,14 @@ cMessage *cYAWNS::getNextEvent()
     while (true)
     {
         msg = sim->msgQueue.peekFirst();
+        if (msg->getTimestamp() < lookahead) {
+            return msg;
+        }
+        // Otherwise, we need to recompute GVT
+        tw_gvt_step1();
+        tw_gvt_step2();
     }
+
     return msg;
 }
 
