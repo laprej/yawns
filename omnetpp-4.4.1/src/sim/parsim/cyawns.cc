@@ -55,8 +55,7 @@ cYAWNS::cYAWNS() : cParsimProtocolBase()
     lookaheadcalc = dynamic_cast<cNMPLookahead *>(createOne(lookhClass.c_str()));
     if (!lookaheadcalc) \
          throw cRuntimeError("Class \"%s\" is not subclassed from cNMPLookahead", lookhClass.c_str());
-    tw_gvt_step1();
-    tw_gvt_step2();
+    GVT = 0;
 }
 
 cYAWNS::~cYAWNS()
@@ -92,37 +91,6 @@ void cYAWNS::startRun()
         segInfo[i].eotEvent = NULL;
         segInfo[i].eitEvent = NULL;
         segInfo[i].lastEotSent = 0.0;
-    }
-
-    // Note boot sequence: first we have to schedule all "resend-EOT" events,
-    // so that the simulation will start by sending out null messages --
-    // otherwise we'd end up sitting blocked on an EIT event forever!
-
-    // create "resend-EOT" events and schedule them to zero (1st thing to do)
-    ev << "  scheduling 'resend-EOT' events...\n";
-    for (i=0; i<numSeg; i++)
-    {
-        if (i!=myProcId)
-        {
-            sprintf(buf,"resendEOT-%d", i);
-            cMessage *eotMsg =  new cMessage(buf);
-            eotMsg->setContextPointer((void *)(long)i);  // khmm...
-            segInfo[i].eotEvent = eotMsg;
-            rescheduleEvent(eotMsg, 0.0);
-        }
-    }
-
-    // create EIT events and schedule them to zero (null msgs will bump them)
-    ev << "  scheduling 'EIT' events...\n";
-    for (i=0; i<numSeg; i++)
-    {
-        if (i!=myProcId)
-        {
-            sprintf(buf,"EIT-%d", i);
-            cMessage *eitMsg =  new cMessage(buf);
-            segInfo[i].eitEvent = eitMsg;
-            rescheduleEvent(eitMsg, 0.0);
-        }
     }
 
     // start lookahead calculator too
@@ -294,8 +262,7 @@ cYAWNS::tw_gvt_step2(void)
 
 cMessage *cYAWNS::getNextEvent()
 {
-    simtime_t lookahead = lookaheadcalc->getCurrentLookahead(comm->getProcId());
-    lookahead += GVT;
+    simtime_t lookahead = GVT;
     // our EIT and resendEOT messages are always scheduled, so the FES can
     // only be empty if there are no other partitions at all -- "no events" then
     // means we're finished.
@@ -313,7 +280,7 @@ cMessage *cYAWNS::getNextEvent()
     while (true)
     {
         msg = sim->msgQueue.peekFirst();
-        if (msg->getTimestamp() < lookahead) {
+        if (msg->getTimestamp() <= lookahead) {
             return msg;
         }
         // Otherwise, we need to recompute GVT
