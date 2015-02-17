@@ -45,6 +45,8 @@ Register_Class(cYAWNS);
 Register_GlobalConfigOption(CFGID_PARSIM_YAWNS_LOOKAHEAD_CLASS, "parsim-yawns-lookahead-class", CFG_STRING, "cLinkDelayLookahead", "When cYAWNS is selected as parsim synchronization class: specifies the C++ class that calculates lookahead. The class should subclass from cNMPLookahead.");
 extern cConfigOption *CFGID_PARSIM_DEBUG; // registered in cparsimpartition.cc
 
+#define YAWNS_BATCH 16
+
 cYAWNS::cYAWNS() : cParsimProtocolBase()
 {
     numSeg = 0;
@@ -262,12 +264,14 @@ cYAWNS::tw_gvt_step2(void)
 
 cMessage *cYAWNS::getNextEvent()
 {
+    static unsigned batch = 0;
+
     simtime_t lookahead = GVT;
     // our EIT and resendEOT messages are always scheduled, so the FES can
     // only be empty if there are no other partitions at all -- "no events" then
     // means we're finished.
-    if (sim->msgQueue.isEmpty())
-        return NULL;
+    // if (sim->msgQueue.isEmpty())
+    //     return NULL;
 
     // we could do a receiveNonblocking() call here to look at our mailbox,
     // but for performance reasons we don't -- it's enough to read it
@@ -279,13 +283,18 @@ cMessage *cYAWNS::getNextEvent()
     cMessage *msg;
     while (true)
     {
+        batch++;
+        if (batch == YAWNS_BATCH) {
+            batch = 0;
+            tw_gvt_step1();
+            tw_gvt_step2();
+        }
+
         msg = sim->msgQueue.peekFirst();
+        if (!msg) continue;
         if (msg->getTimestamp() <= lookahead) {
             return msg;
         }
-        // Otherwise, we need to recompute GVT
-        tw_gvt_step1();
-        tw_gvt_step2();
     }
 
     return msg;
