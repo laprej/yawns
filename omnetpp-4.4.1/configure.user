@@ -63,7 +63,7 @@ SYSTEMC=no
 # with "make SHARED_LIBS=no" but then simulation models also need to be built
 # with "make SHARED_LIBS=no"
 #
-SHARED_LIBS=yes
+SHARED_LIBS=no
 
 #
 # Compiler and linker options for Tcl/Tk
@@ -106,7 +106,7 @@ SHARED_LIBS=yes
 # If commented out, the configure script will try to autodetect it
 #
 # If you don't have Tcl/Tk installed, adding
-#  NO_TCL=true
+NO_TCL=true
 # below lets you build just the non-GUI components.
 
 #
