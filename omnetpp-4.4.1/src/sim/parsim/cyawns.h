@@ -56,7 +56,8 @@ class SIM_API cYAWNS : public cParsimProtocolBase
     bool debug;
 
     cNMPLookahead *lookaheadcalc;
-    simtime_t GVT;
+    SimTime GVT;
+    SimTime endOfTime;
 
   protected:
     // process buffers coming from other partitions

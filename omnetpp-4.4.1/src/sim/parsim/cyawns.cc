@@ -99,6 +99,13 @@ void cYAWNS::startRun()
     lookaheadcalc->startRun();
 
     ev << "  setup done.\n";
+
+    const char *s = ev.getConfig()->getConfigValue("sim-time-limit");
+    if (s) {
+        printf("sim-time-limit is %s\n", s);
+        endOfTime = endOfTime.parse(s);
+        printf("%s\n", endOfTime.str().c_str());
+    }
 }
 
 void cYAWNS::endRun()
@@ -184,7 +191,9 @@ cYAWNS::tw_gvt_step2(void)
     long long total_white = 0;
 
     SimTime pq_min = SimTime::getMaxTime();
-    SimTime net_min = SimTime::getMaxTime();
+    if (cMessage *msg = sim->msgQueue.peekFirst()) {
+        pq_min = msg->getTimestamp();
+    }
 
     SimTime lvt;
     SimTime gvt;
@@ -288,6 +297,12 @@ cMessage *cYAWNS::getNextEvent()
             batch = 0;
             tw_gvt_step1();
             tw_gvt_step2();
+        }
+
+        if (GVT > endOfTime) {
+            printf("Ending cYAWNS execution\n");
+            printf("%s > %s\n", GVT.str().c_str() , endOfTime.str().c_str());
+            return NULL;
         }
 
         msg = sim->msgQueue.peekFirst();
