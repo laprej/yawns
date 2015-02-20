@@ -37,6 +37,7 @@
 #include "cproxygate.h"
 #include "cchannel.h"
 #include "mpi.h"
+#include <assert.h>
 
 NAMESPACE_BEGIN
 
@@ -58,6 +59,8 @@ cYAWNS::cYAWNS() : cParsimProtocolBase()
     if (!lookaheadcalc) \
          throw cRuntimeError("Class \"%s\" is not subclassed from cNMPLookahead", lookhClass.c_str());
     GVT = 0;
+    GVT_prev = SimTime::getMaxTime();
+    tw_net_minimum = SimTime::getMaxTime();
 }
 
 cYAWNS::~cYAWNS()
@@ -76,7 +79,7 @@ void cYAWNS::setContext(cSimulation *sim, cParsimPartition *seg, cParsimCommunic
 
 void cYAWNS::startRun()
 {
-    ev << "starting Null Message Protocol...\n";
+    ev << "starting YAWNS Protocol...\n";
 
     delete [] segInfo;
 
@@ -95,17 +98,15 @@ void cYAWNS::startRun()
         segInfo[i].lastEotSent = 0.0;
     }
 
+//    static bool pause = true;
+//    while (pause) {
+//        ;
+//    }
+
     // start lookahead calculator too
     lookaheadcalc->startRun();
 
     ev << "  setup done.\n";
-
-    const char *s = ev.getConfig()->getConfigValue("sim-time-limit");
-    if (s) {
-        printf("sim-time-limit is %s\n", s);
-        endOfTime = endOfTime.parse(s);
-        printf("%s\n", endOfTime.str().c_str());
-    }
 }
 
 void cYAWNS::endRun()
@@ -115,6 +116,12 @@ void cYAWNS::endRun()
 
 void cYAWNS::processOutgoingMessage(cMessage *msg, int destProcId, int destModuleId, int destGateId, void *data)
 {
+    if (tw_net_minimum > msg->getArrivalTime()) {
+        tw_net_minimum = msg->getArrivalTime();
+    }
+    simtime_t LA = lookaheadcalc->getCurrentLookahead(destProcId);
+    assert(msg->getArrivalTime() > SimTime() + LA);
+
   cCommBuffer *buffer = comm->createCommBuffer();
 
   // send cMessage
@@ -191,14 +198,10 @@ cYAWNS::tw_gvt_step2(void)
     long long total_white = 0;
 
     SimTime pq_min = SimTime::getMaxTime();
-    if (cMessage *msg = sim->msgQueue.peekFirst()) {
-        pq_min = msg->getTimestamp();
-    }
+    SimTime net_min = SimTime::getMaxTime();
 
-    SimTime lvt;
+    SimTime lvt = SimTime::getMaxTime();
     SimTime gvt;
-
-    simtime_t_cref start = simTime();
 
     if(local_gvt_status != TW_GVT_COMPUTE)
         return;
@@ -228,16 +231,23 @@ cYAWNS::tw_gvt_step2(void)
 
 // Skip all of this, OMNeT doesn't work this way (sends are sent
 // immediately and not stored in an outbound queue)
-//    net_min = tw_net_minimum(me);
-//
-//    lvt = me->trans_msg_ts;
-//    if(lvt > pq_min)
-//        lvt = pq_min;
-//    if(lvt > net_min)
-//        lvt = net_min;
-    lvt = pq_min;
+    if (cMessage *cmsg = sim->msgQueue.peekFirst()) {
+        pq_min = cmsg->getArrivalTime();
+    }
+
+    net_min = tw_net_minimum;
+
+    // lvt = me->trans_msg_ts;
+    if(lvt > pq_min)
+        lvt = pq_min;
+    if(lvt > net_min)
+        lvt = net_min;
 
     all_reduce_cnt++;
+
+//    if (lvt == SimTime::getMaxTime()) {
+//        lvt = GVT;
+//    }
 
     int64_t lvt_raw = lvt.raw();
     int64_t gvt_raw = gvt.raw();
@@ -254,6 +264,10 @@ cYAWNS::tw_gvt_step2(void)
     }
 
     gvt.setRaw(gvt_raw);
+    gvt = std::min(gvt, GVT_prev);
+    if (GVT > gvt) {
+        printf("GVT decreased from %lld to %lld\n", GVT.raw(), gvt.raw());
+    }
 
 //    if (gvt / g_tw_ts_end > percent_complete && (g_tw_mynode == g_tw_masternode)) {
 //        gvt_print(gvt);
@@ -266,7 +280,13 @@ cYAWNS::tw_gvt_step2(void)
     gvt_cnt = 0;
 
     // Set the GVT for this instance
-    GVT = gvt;
+    if (gvt > GVT) {
+        GVT_prev = GVT;
+        printf("increasing GVT to %lf\n", gvt.dbl());
+        GVT = gvt;
+    }
+    tw_net_minimum = SimTime::getMaxTime();
+
 
 //    g_tw_gvt_done++;
 }
@@ -275,7 +295,15 @@ cMessage *cYAWNS::getNextEvent()
 {
     static unsigned batch = 0;
 
-    simtime_t lookahead = GVT;
+    simtime_t LA;
+    for (int i = 0; i < numSeg; i++) {
+        if (lookaheadcalc->getCurrentLookahead(i) > 0) {
+            // We will need to change this when dealing with dynamic looksheads
+            LA = lookaheadcalc->getCurrentLookahead(i);
+            break;
+        }
+    }
+
     // our EIT and resendEOT messages are always scheduled, so the FES can
     // only be empty if there are no other partitions at all -- "no events" then
     // means we're finished.
@@ -299,17 +327,12 @@ cMessage *cYAWNS::getNextEvent()
             tw_gvt_step2();
         }
 
-        if (GVT > endOfTime) {
-            printf("Ending cYAWNS execution\n");
-            printf("%s > %s\n", GVT.str().c_str() , endOfTime.str().c_str());
-            return NULL;
-        }
-
         msg = sim->msgQueue.peekFirst();
         if (!msg) continue;
-        if (msg->getTimestamp() <= lookahead) {
-            return msg;
+        if (msg->getArrivalTime() > GVT + LA) {
+            continue;
         }
+        return msg;
     }
 
     return msg;
