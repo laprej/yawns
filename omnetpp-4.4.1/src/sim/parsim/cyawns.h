@@ -59,6 +59,7 @@ class SIM_API cYAWNS : public cParsimProtocolBase
     SimTime endOfTime;
     SimTime GVT;
     SimTime tw_net_minimum;
+    SimTime LA; // minimum lookahead for this node
 
   protected:
     // process buffers coming from other partitions

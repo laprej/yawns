@@ -100,6 +100,18 @@ void cYAWNS::startRun()
     // start lookahead calculator too
     lookaheadcalc->startRun();
 
+    LA = SimTime::getMaxTime();
+    // Store the lowest lookahead value
+    for (int i = 0; i < numSeg; i++) {
+        SimTime x = lookaheadcalc->getCurrentLookahead(i);
+        if (x > 0) {
+            if (LA > x) {
+                LA = x;
+                printf("Setting lookahead to %s\n", LA.str().c_str());
+            }
+        }
+    }
+
     const char *s = ev.getConfig()->getConfigValue("sim-time-limit");
     if (s) {
         printf("sim-time-limit is %s\n", s);
@@ -279,19 +291,6 @@ cYAWNS::tw_gvt_step2(void)
 cMessage *cYAWNS::getNextEvent()
 {
     static unsigned batch = 0;
-
-    static bool once = true;
-    simtime_t LA;
-    if (once) {
-        for (int i = 0; i < numSeg; i++) {
-            if (lookaheadcalc->getCurrentLookahead(i) > 0) {
-                // We will need to change this when dealing with dynamic looksheads
-                LA = lookaheadcalc->getCurrentLookahead(i);
-                once = false;
-                break;
-            }
-        }
-    }
 
     cMessage *msg;
     while (true)
