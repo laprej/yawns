@@ -106,6 +106,13 @@ void cYAWNS::startRun()
     // start lookahead calculator too
     lookaheadcalc->startRun();
 
+    const char *s = ev.getConfig()->getConfigValue("sim-time-limit");
+    if (s) {
+        printf("sim-time-limit is %s\n", s);
+        endOfTime = endOfTime.parse(s);
+        printf("%s\n", endOfTime.str().c_str());
+    }
+
     ev << "  setup done.\n";
 }
 
@@ -328,6 +335,9 @@ cMessage *cYAWNS::getNextEvent()
     while (true)
     {
         batch++;
+        if (GVT > endOfTime) {
+            return NULL;
+        }
         if (batch == YAWNS_BATCH) {
             batch = 0;
             tw_gvt_step1();
