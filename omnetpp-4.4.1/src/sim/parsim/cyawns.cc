@@ -130,6 +130,7 @@ void cYAWNS::processOutgoingMessage(cMessage *msg, int destProcId, int destModul
   buffer->packObject(msg);
   comm->send(buffer, TAG_CMESSAGE, destProcId);
   comm->recycleCommBuffer(buffer);
+  comm->setNumSent(comm->getNumSent() + 1);
 }
 
 void cYAWNS::processReceivedBuffer(cCommBuffer *buffer, int tag, int sourceProcId)
@@ -157,6 +158,7 @@ void cYAWNS::processReceivedBuffer(cCommBuffer *buffer, int tag, int sourceProcI
             buffer->unpack(destGateId);
             msg = (cMessage *)buffer->unpackObject();
             processReceivedMessage(msg, destModuleId, destGateId, sourceProcId);
+            comm->setNumRecv(comm->getNumRecv() + 1);
             break;
 
         case TAG_NULLMESSAGE:
@@ -211,6 +213,7 @@ cYAWNS::tw_gvt_step2(void)
         // Should be unnecessary due to OMNeT default behavior
         // tw_net_read(me);
 
+        cParsimProtocolBase::receiveNonblocking();
         // send message counts to create consistent cut
         local_white = comm->getNumSent() - comm->getNumRecv();
         all_reduce_cnt++;
@@ -264,10 +267,10 @@ cYAWNS::tw_gvt_step2(void)
     }
 
     gvt.setRaw(gvt_raw);
-    gvt = std::min(gvt, GVT_prev);
-    if (GVT > gvt) {
-        printf("GVT decreased from %lld to %lld\n", GVT.raw(), gvt.raw());
-    }
+//    gvt = std::min(gvt, GVT_prev);
+//    if (GVT > gvt) {
+//        printf("GVT decreased from %lld to %lld\n", GVT.raw(), gvt.raw());
+//    }
 
 //    if (gvt / g_tw_ts_end > percent_complete && (g_tw_mynode == g_tw_masternode)) {
 //        gvt_print(gvt);
@@ -282,7 +285,7 @@ cYAWNS::tw_gvt_step2(void)
     // Set the GVT for this instance
     if (gvt > GVT) {
         GVT_prev = GVT;
-        printf("increasing GVT to %lf\n", gvt.dbl());
+        printf("%d: increasing GVT to %lf\n", comm->getProcId(), gvt.dbl());
         GVT = gvt;
     }
     tw_net_minimum = SimTime::getMaxTime();
@@ -295,12 +298,16 @@ cMessage *cYAWNS::getNextEvent()
 {
     static unsigned batch = 0;
 
+    static bool once = true;
     simtime_t LA;
-    for (int i = 0; i < numSeg; i++) {
-        if (lookaheadcalc->getCurrentLookahead(i) > 0) {
-            // We will need to change this when dealing with dynamic looksheads
-            LA = lookaheadcalc->getCurrentLookahead(i);
-            break;
+    if (once) {
+        for (int i = 0; i < numSeg; i++) {
+            if (lookaheadcalc->getCurrentLookahead(i) > 0) {
+                // We will need to change this when dealing with dynamic looksheads
+                LA = lookaheadcalc->getCurrentLookahead(i);
+                once = false;
+                break;
+            }
         }
     }
 
@@ -330,6 +337,7 @@ cMessage *cYAWNS::getNextEvent()
         msg = sim->msgQueue.peekFirst();
         if (!msg) continue;
         if (msg->getArrivalTime() > GVT + LA) {
+            batch = YAWNS_BATCH - 1;
             continue;
         }
         return msg;
