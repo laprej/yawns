@@ -297,13 +297,13 @@ cMessage *cYAWNS::getNextEvent()
     while (true)
     {
         batch++;
-        if (GVT > endOfTime) {
-            return NULL;
-        }
         if (batch == YAWNS_BATCH) {
             batch = 0;
             tw_gvt_step1();
             tw_gvt_step2();
+        }
+        if (GVT > endOfTime) {
+            return NULL;
         }
 
         msg = sim->msgQueue.peekFirst();
