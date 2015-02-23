@@ -59,7 +59,6 @@ cYAWNS::cYAWNS() : cParsimProtocolBase()
     if (!lookaheadcalc) \
          throw cRuntimeError("Class \"%s\" is not subclassed from cNMPLookahead", lookhClass.c_str());
     GVT = 0;
-    GVT_prev = SimTime::getMaxTime();
     tw_net_minimum = SimTime::getMaxTime();
 }
 
@@ -97,11 +96,6 @@ void cYAWNS::startRun()
         segInfo[i].eitEvent = NULL;
         segInfo[i].lastEotSent = 0.0;
     }
-
-//    static bool pause = true;
-//    while (pause) {
-//        ;
-//    }
 
     // start lookahead calculator too
     lookaheadcalc->startRun();
@@ -217,10 +211,7 @@ cYAWNS::tw_gvt_step2(void)
 
     while(1)
     {
-        // Should be unnecessary due to OMNeT default behavior
-        // tw_net_read(me);
-
-        cParsimProtocolBase::receiveNonblocking();
+        receiveNonblocking();
         // send message counts to create consistent cut
         local_white = comm->getNumSent() - comm->getNumRecv();
         all_reduce_cnt++;
@@ -247,17 +238,12 @@ cYAWNS::tw_gvt_step2(void)
 
     net_min = tw_net_minimum;
 
-    // lvt = me->trans_msg_ts;
     if(lvt > pq_min)
         lvt = pq_min;
     if(lvt > net_min)
         lvt = net_min;
 
     all_reduce_cnt++;
-
-//    if (lvt == SimTime::getMaxTime()) {
-//        lvt = GVT;
-//    }
 
     int64_t lvt_raw = lvt.raw();
     int64_t gvt_raw = gvt.raw();
@@ -274,14 +260,6 @@ cYAWNS::tw_gvt_step2(void)
     }
 
     gvt.setRaw(gvt_raw);
-//    gvt = std::min(gvt, GVT_prev);
-//    if (GVT > gvt) {
-//        printf("GVT decreased from %lld to %lld\n", GVT.raw(), gvt.raw());
-//    }
-
-//    if (gvt / g_tw_ts_end > percent_complete && (g_tw_mynode == g_tw_masternode)) {
-//        gvt_print(gvt);
-//    }
 
     comm->setNumSent(0);
     comm->setNumRecv(0);
@@ -291,12 +269,9 @@ cYAWNS::tw_gvt_step2(void)
 
     // Set the GVT for this instance
     if (gvt > GVT) {
-        GVT_prev = GVT;
-        printf("%d: increasing GVT to %lf\n", comm->getProcId(), gvt.dbl());
         GVT = gvt;
     }
     tw_net_minimum = SimTime::getMaxTime();
-
 
 //    g_tw_gvt_done++;
 }
@@ -317,19 +292,6 @@ cMessage *cYAWNS::getNextEvent()
             }
         }
     }
-
-    // our EIT and resendEOT messages are always scheduled, so the FES can
-    // only be empty if there are no other partitions at all -- "no events" then
-    // means we're finished.
-    // if (sim->msgQueue.isEmpty())
-    //     return NULL;
-
-    // we could do a receiveNonblocking() call here to look at our mailbox,
-    // but for performance reasons we don't -- it's enough to read it
-    // (receiveBlocking()) when we're stuck on an EIT. Or should we do it
-    // every 1000 events or so? If MPI receive buffer fills up it can cause
-    // deadlock.
-    //receiveNonblocking();
 
     cMessage *msg;
     while (true)

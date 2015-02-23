@@ -57,7 +57,7 @@ class SIM_API cYAWNS : public cParsimProtocolBase
 
     cNMPLookahead *lookaheadcalc;
     SimTime endOfTime;
-    SimTime GVT, GVT_prev;
+    SimTime GVT;
     SimTime tw_net_minimum;
 
   protected:
