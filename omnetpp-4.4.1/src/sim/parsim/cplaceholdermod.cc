@@ -26,6 +26,7 @@
 #include "cmpicomm.h"
 #include "cnosynchronization.h"
 #include "cnullmessageprot.h"
+#include "cyawns.h"
 #include "cispeventlogger.h"
 #include "cidealsimulationprot.h"
 #include "clinkdelaylookahead.h"
@@ -77,11 +78,12 @@ void parsim_dummy()
 #endif
     cNoSynchronization ns;
     cNullMessageProtocol np;
+    cYAWNS yawns;
     cISPEventLogger iel;
     cIdealSimulationProtocol ip;
     cLinkDelayLookahead ldla;
     // prevent "unused variable" warnings:
-    (void)fc; (void)npc; (void)ns; (void)np; (void)iel; (void)ip; (void)ldla;
+    (void)fc; (void)npc; (void)ns; (void)yawns; (void)np; (void)iel; (void)ip; (void)ldla;
 }
 
 NAMESPACE_END
