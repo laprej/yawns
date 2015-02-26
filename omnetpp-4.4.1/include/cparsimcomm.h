@@ -23,6 +23,7 @@
 #define __CPARSIMCOMM_H__
 
 #include "cobject.h"
+#include <stdint.h>
 
 NAMESPACE_BEGIN
 
@@ -45,7 +46,7 @@ class cCommBuffer;
 class SIM_API cParsimCommunications : public cObject
 {
 protected:
-    unsigned long s_nwhite_sent, s_nwhite_recv;
+    int64_t s_nwhite_sent, s_nwhite_recv;
 
   public:
     /**
@@ -53,10 +54,10 @@ protected:
      */
     virtual ~cParsimCommunications() {}
 
-    virtual void setNumSent(unsigned long s) { s_nwhite_sent = s; }
-    virtual void setNumRecv(unsigned long r) { s_nwhite_recv = r; }
-    virtual unsigned long getNumSent() const { return s_nwhite_sent; }
-    virtual unsigned long getNumRecv() const { return s_nwhite_recv; }
+    virtual void setNumSent(int64_t s) { s_nwhite_sent = s; }
+    virtual void setNumRecv(int64_t r) { s_nwhite_recv = r; }
+    virtual int64_t getNumSent() const { return s_nwhite_sent; }
+    virtual int64_t getNumRecv() const { return s_nwhite_recv; }
 
     /** @name Lifecycle of communications library */
     //@{

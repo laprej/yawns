@@ -1,12 +1,13 @@
 //=========================================================================
-//  CNULLMESSAGEPROT.CC - part of
+//  CYAWNS.CC - part of
 //
 //                  OMNeT++/OMNEST
 //           Discrete System Simulation in C++
 //
-//  Author: Andras Varga, 2003
-//          Dept. of Electrical and Computer Systems Engineering,
-//          Monash University, Melbourne, Australia
+//  Author: Justin LaPre and Chris Carothers
+//          Dept. of Computer Science,
+//          Rensselaer Poly. Inst.
+//          Troy, New York, U.S.A
 //
 //=========================================================================
 
@@ -112,6 +113,9 @@ void cYAWNS::startRun()
         }
     }
 
+    comm->setNumSent(0);
+    comm->setNumRecv(0);
+
     const char *s = ev.getConfig()->getConfigValue("sim-time-limit");
     if (s) {
         printf("sim-time-limit is %s\n", s);
@@ -209,8 +213,8 @@ cYAWNS::tw_gvt_step1(void)
 void
 cYAWNS::tw_gvt_step2(void)
 {
-    long long local_white = 0;
-    long long total_white = 0;
+    int64_t local_white = 0;
+    int64_t total_white = 0;
 
     SimTime pq_min = SimTime::getMaxTime();
     SimTime net_min = SimTime::getMaxTime();
@@ -223,24 +227,30 @@ cYAWNS::tw_gvt_step2(void)
 
     while(1)
     {
-        receiveNonblocking();
-        // send message counts to create consistent cut
-        local_white = comm->getNumSent() - comm->getNumRecv();
-        all_reduce_cnt++;
-        if(MPI_Allreduce(
-                         &local_white,
-                         &total_white,
-                         1,
-                         MPI_LONG_LONG,
-                         MPI_SUM,
-                         MPI_COMM_WORLD) != MPI_SUCCESS) {
-            printf("MPI_Allreduce for GVT failed");
-            exit(-1);
-        }
-
-        if(total_white == 0)
-            break;
+      printf("GVT Step 2: %d: Before NB Recv \n", comm->getProcId());
+      receiveNonblocking();
+      printf("GVT Step 2: %d: After NB Recv and Before MPI_Allreduce \n", comm->getProcId());
+      // send message counts to create consistent cut
+      local_white = comm->getNumSent() - comm->getNumRecv();
+      printf("GVT Step 2: %d: Computed Sent (%lld) - Recv(%lld) as %lld \n", comm->getProcId(),
+	     comm->getNumSent(), comm->getNumRecv(), local_white );
+      all_reduce_cnt++;
+      if(MPI_Allreduce(
+		       &local_white,
+		       &total_white,
+		       1,
+		       MPI_LONG_LONG,
+		       MPI_SUM,
+		       MPI_COMM_WORLD) != MPI_SUCCESS) {
+	printf("MPI_Allreduce for GVT failed");
+	exit(-1);
+      }
+      printf("GVT Step 2: %d: After MPI_Allreduce, total white %lld \n", comm->getProcId(), total_white );
+      if(total_white == 0)
+	break;
     }
+
+    printf("GVT Step 2: %d: Complete MPI_Allreduce \n", comm->getProcId() );
 
 // Skip all of this, OMNeT doesn't work this way (sends are sent
 // immediately and not stored in an outbound queue)
@@ -270,7 +280,7 @@ cYAWNS::tw_gvt_step2(void)
         printf("MPI_Allreduce for GVT failed");
         exit(-1);
     }
-
+    printf("GVT Step 2: %d: Completed GVT MPI_Allreduce \n", comm->getProcId() );
     gvt.setRaw(gvt_raw);
 
     comm->setNumSent(0);
@@ -280,9 +290,18 @@ cYAWNS::tw_gvt_step2(void)
     gvt_cnt = 0;
 
     // Set the GVT for this instance
-    if (gvt > GVT) {
+    if (gvt >= GVT)
+      {
         GVT = gvt;
-    }
+      }
+    else
+      {
+	printf("GVT went backwards - need help \n");
+	exit(-1);
+      }
+
+    printf("GVT Step 2: %d: New GVT is %lf \n", comm->getProcId(), gvt.dbl());
+
     tw_net_minimum = SimTime::getMaxTime();
 
 //    g_tw_gvt_done++;
