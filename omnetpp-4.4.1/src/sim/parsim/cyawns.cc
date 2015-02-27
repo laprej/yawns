@@ -160,14 +160,8 @@ void cYAWNS::processReceivedBuffer(cCommBuffer *buffer, int tag, int sourceProcI
     switch (tag)
     {
         case TAG_CMESSAGE_WITH_NULLMESSAGE:
-            // buffer->unpack(eit);
-            // processReceivedEIT(sourceProcId, eit);
-            // buffer->unpack(destModuleId);
-            // buffer->unpack(destGateId);
-            // msg = (cMessage *)buffer->unpackObject();
-            // processReceivedMessage(msg, destModuleId, destGateId, sourceProcId);
-	  printf("Error: YAWNS protocol recv'ed a CMESSAGE with NULLLMESSAGE!\n");
-	  exit(-1);
+            printf("Error: YAWNS protocol recv'ed a CMESSAGE with NULLLMESSAGE!\n");
+            exit(-1);
             break;
 
         case TAG_CMESSAGE:
@@ -179,10 +173,8 @@ void cYAWNS::processReceivedBuffer(cCommBuffer *buffer, int tag, int sourceProcI
             break;
 
         case TAG_NULLMESSAGE:
-	  // buffer->unpack(eit);
-	  //processReceivedEIT(sourceProcId, eit);
-	  printf("Error: YAWNS protocol recv'ed a NULLLMESSAGE!\n");
-	  exit(-1);
+            printf("Error: YAWNS protocol recv'ed a NULLLMESSAGE!\n");
+            exit(-1);
             break;
 
         default:
