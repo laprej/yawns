@@ -325,7 +325,9 @@ cMessage *cYAWNS::getNextEvent()
         msg = sim->msgQueue.peekFirst();
         if (!msg) continue;
         if (msg->getArrivalTime() > GVT + LA) {
+            // We can't move forward so compute GVT
             batch = YAWNS_BATCH - 1;
+            local_gvt_status = TW_GVT_COMPUTE;
             continue;
         }
         return msg;
