@@ -227,33 +227,31 @@ cYAWNS::tw_gvt_step2(void)
 
     while(1)
     {
-      printf("GVT Step 2: %d: Before NB Recv \n", comm->getProcId());
-      receiveNonblocking();
-      printf("GVT Step 2: %d: After NB Recv and Before MPI_Allreduce \n", comm->getProcId());
-      // send message counts to create consistent cut
-      local_white = comm->getNumSent() - comm->getNumRecv();
-      printf("GVT Step 2: %d: Computed Sent (%lld) - Recv(%lld) as %lld \n", comm->getProcId(),
-	     comm->getNumSent(), comm->getNumRecv(), local_white );
-      all_reduce_cnt++;
-      if(MPI_Allreduce(
-		       &local_white,
-		       &total_white,
-		       1,
-		       MPI_LONG_LONG,
-		       MPI_SUM,
-		       MPI_COMM_WORLD) != MPI_SUCCESS) {
-	printf("MPI_Allreduce for GVT failed");
-	exit(-1);
-      }
-      printf("GVT Step 2: %d: After MPI_Allreduce, total white %lld \n", comm->getProcId(), total_white );
-      if(total_white == 0)
-	break;
+        printf("GVT Step 2: %d: Before NB Recv \n", comm->getProcId());
+        receiveNonblocking();
+        printf("GVT Step 2: %d: After NB Recv and Before MPI_Allreduce \n", comm->getProcId());
+        // send message counts to create consistent cut
+        local_white = comm->getNumSent() - comm->getNumRecv();
+        printf("GVT Step 2: %d: Computed Sent (%lld) - Recv(%lld) as %lld \n", comm->getProcId(),
+               comm->getNumSent(), comm->getNumRecv(), local_white );
+        all_reduce_cnt++;
+        if(MPI_Allreduce(
+                         &local_white,
+                         &total_white,
+                         1,
+                         MPI_LONG_LONG,
+                         MPI_SUM,
+                         MPI_COMM_WORLD) != MPI_SUCCESS) {
+            printf("MPI_Allreduce for GVT failed");
+            exit(-1);
+        }
+        printf("GVT Step 2: %d: After MPI_Allreduce, total white %lld \n", comm->getProcId(), total_white );
+        if(total_white == 0)
+            break;
     }
 
     printf("GVT Step 2: %d: Complete MPI_Allreduce \n", comm->getProcId() );
 
-// Skip all of this, OMNeT doesn't work this way (sends are sent
-// immediately and not stored in an outbound queue)
     if (cMessage *cmsg = sim->msgQueue.peekFirst()) {
         pq_min = cmsg->getArrivalTime();
     }
@@ -291,20 +289,20 @@ cYAWNS::tw_gvt_step2(void)
 
     // Set the GVT for this instance
     if (gvt >= GVT)
-      {
+    {
         GVT = gvt;
-      }
+    }
     else
-      {
-	printf("GVT went backwards - need help \n");
-	exit(-1);
-      }
+    {
+        printf("GVT went backwards - need help \n");
+        exit(-1);
+    }
 
     printf("GVT Step 2: %d: New GVT is %lf \n", comm->getProcId(), gvt.dbl());
 
     tw_net_minimum = SimTime::getMaxTime();
 
-//    g_tw_gvt_done++;
+    //    g_tw_gvt_done++;
 }
 
 cMessage *cYAWNS::getNextEvent()
