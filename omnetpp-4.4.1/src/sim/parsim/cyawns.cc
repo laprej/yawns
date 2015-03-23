@@ -136,7 +136,6 @@ void cYAWNS::processOutgoingMessage(cMessage *msg, int destProcId, int destModul
     if (tw_net_minimum > msg->getArrivalTime()) {
         tw_net_minimum = msg->getArrivalTime();
     }
-    simtime_t LA = lookaheadcalc->getCurrentLookahead(destProcId);
     assert(msg->getArrivalTime() > SimTime() + LA);
 
   cCommBuffer *buffer = comm->createCommBuffer();
