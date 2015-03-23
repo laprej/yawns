@@ -133,11 +133,6 @@ void cYAWNS::endRun()
 
 void cYAWNS::processOutgoingMessage(cMessage *msg, int destProcId, int destModuleId, int destGateId, void *data)
 {
-    if (tw_net_minimum > msg->getArrivalTime()) {
-        tw_net_minimum = msg->getArrivalTime();
-    }
-    assert(msg->getArrivalTime() > SimTime() + LA);
-
   cCommBuffer *buffer = comm->createCommBuffer();
 
   // send cMessage
